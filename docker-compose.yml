@@ -10,21 +10,29 @@ services:
       DATA_DIR: /data
       MEDIAMTX_API: http://127.0.0.1:9997
       MEDIAMTX_HLS: http://127.0.0.1:8888
+      MEDIAMTX_WEBRTC: http://127.0.0.1:8889
+      MEDIAMTX_PLAYBACK: http://127.0.0.1:9996
+      RECORDINGS_DIR: /recordings
+      RECORDINGS_MAX_GB: ${RECORDINGS_MAX_GB:-500}
       MEDIAMTX_HLS_SECRET: ${HLS_CDN_SECRET:?Set HLS_CDN_SECRET in .env}
     volumes:
       - cctv-data:/data
+      - ${RECORDINGS_HOST_DIR:-/mnt/cctv/recordings}:/recordings
     depends_on:
       - mediamtx
 
   mediamtx:
     image: bluenviron/mediamtx:1.21.1
     container_name: nvr-mediamtx
+    # Same unprivileged user as the panel so it can prune old recordings.
+    user: "10001:10001"
     restart: unless-stopped
     network_mode: host
     environment:
       MTX_HLSCDNSECRET: ${HLS_CDN_SECRET:?Set HLS_CDN_SECRET in .env}
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
+      - ${RECORDINGS_HOST_DIR:-/mnt/cctv/recordings}:/recordings
 
 volumes:
   cctv-data:

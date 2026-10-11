@@ -6,13 +6,13 @@ Maintain a Spanish-language, self-hosted CCTV dashboard for ONVIF/RTSP cameras. 
 
 ## Architecture
 
-- `app/main.py`: FastAPI app, HTTP Basic authentication, encrypted SQLite camera credentials, ONVIF discovery/profile lookup, PTZ/imaging endpoints, RTSP source setup, and authenticated HLS proxy.
-- `app/static/index.html`: Spanish dashboard and camera dialogs.
-- `app/static/cctv.css`: NVR/CCTV styling inspired by the reference MCServer layout.
-- `app/static/app.js`: camera cards, ONVIF form, HLS.js playback, PTZ and imaging controls.
-- `Dockerfile`: Python application image; bundles HLS.js locally.
-- `docker-compose.yml`: app and MediaMTX, both on host networking so ONVIF multicast and camera streams can reach the LAN.
-- `mediamtx.yml`: MediaMTX API/HLS listeners bound to loopback; HLS uses LL-HLS settings and a CDN bearer secret supplied through `.env`.
+See README "Estructura del código" for the module map. Key points:
+
+- FastAPI package under `app/` (`main.py` only assembles routers). Panel login uses a session cookie (SameSite=Strict, HttpOnly); the single account lives in SQLite (`users`, scrypt hash) and is seeded from `.env` only on first boot.
+- Browser code is ES modules in `app/static/js/`; styles in `app/static/nvr.css`.
+- Playback: WebRTC (WHEP relayed through the authenticated panel, media on port 8189) with automatic HLS fallback.
+- `mediamtx.yml`: API/HLS/WebRTC signaling on loopback; RTSP/RTMP/SRT/MoQ servers disabled so the LAN cannot bypass the panel.
+- The panel always streams the highest-resolution ONVIF profile; there is no manual profile selector.
 - Persistent camera database and encryption key live in the `cctv-data` Docker volume. Do not remove that volume during redeploys.
 
 ## Verified Deployment
@@ -41,7 +41,8 @@ When copying from Windows, use one `scp` command per destination file if files b
 - Direct ONVIF queries have succeeded and returned two profiles: `PROFILE_000` (2304x1296) and `PROFILE_001` (800x448). The UI should recommend the higher-resolution profile, while keeping manual selection available.
 - ONVIF reports PTZ and zoom velocity spaces, and Imaging reports `IrCutFilterModes` `ON`, `OFF`, `AUTO`.
 - White-light control was not advertised by ONVIF. Do not display or claim white-light control unless a supported ONVIF/vendor API is verified.
-- Codec metadata has been inconsistent: ONVIF profile metadata reported H.264 in a recent probe, while MediaMTX reported the active RTSP stream as H.265. Re-query both the selected profile and active stream before changing codecs or blaming browser support.
+- Codec metadata is wrong: ONVIF reports H.264 for both profiles, but on 2026-10-11 both RTSP streams were verified as H.265 (2304x1296 and 800x448). The user is to switch the camera to H.264 in EasyVMS. The Sistema tab shows real vs ONVIF codec.
+- GOP is ~40 frames at ~12 fps (keyframe every ~3.2 s), which sets the floor for HLS latency.
 - The camera's RTSP URI is provided by ONVIF; do not hard-code an RTSP path unless ONVIF stops returning one.
 
 ## Current Playback Design
@@ -56,7 +57,7 @@ When copying from Windows, use one `scp` command per destination file if files b
 
 1. Diagnose reported excessive delay and intermittent freezes. Capture live MediaMTX path state, current codec/FPS if available, HLS playlist part/hold-back values, and HLS.js fatal/nonfatal events while the user observes playback. Distinguish source stalls from browser decode stalls.
 2. Verify the camera's profile and actual RTSP stream codec again. If the main stream is HEVC and browser decode is unreliable, prefer testing the 800x448 substream if it is H.264. Do not add transcoding until direct stream evidence shows it is needed; transcoding costs CPU and adds delay.
-3. Correct the day/night selector labels. ONVIF `IrCutFilter` values describe the IR-cut filter state; verify the ON/OFF meanings, then label them accurately as day/night/automatic. Current UI mapping may be reversed: it currently maps `ON` to “Noche” and `OFF` to “Día”.
+3. Server `ufw` is active and must allow 8189/udp+tcp from the LAN for WebRTC (requires the user's sudo). Until then playback falls back to HLS.
 4. PTZ controls use ONVIF `ContinuousMove` and automatic stop. Test movement only when the user asks or when it can be tested safely; never leave a movement running. The camera has zoom capability.
 5. Keep white-light control hidden unless a documented and authorized protocol/API is found. P6S is proprietary/P2P; do not reverse-engineer or claim it is integrated based only on the EasyVMS app working.
 

@@ -1,6 +1,13 @@
 logLevel: warn
 api: yes
 apiAddress: 127.0.0.1:9997
+# Only the panel serves video to browsers. MediaMTX servers that would expose
+# camera streams to the LAN without the panel's authentication stay disabled;
+# pulling from the camera (rtspSource) does not need them.
+rtsp: no
+rtmp: no
+srt: no
+moq: no
 hls: yes
 hlsAddress: 127.0.0.1:8888
 hlsCDNSecret: ""
@@ -8,4 +15,21 @@ hlsVariant: lowLatency
 hlsSegmentCount: 7
 hlsSegmentDuration: 1s
 hlsPartDuration: 200ms
+# WebRTC signaling (WHEP) is relayed by the panel; only ICE media is on the LAN.
+webrtc: yes
+webrtcAddress: 127.0.0.1:8889
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+webrtcIPsFromInterfaces: yes
+# Recordings: the camera's own H.264/H.265 written as-is (no re-encoding) in
+# 10-minute fMP4 segments. The panel enforces the disk budget, so MediaMTX's
+# age-based deletion is off.
+playback: yes
+playbackAddress: 127.0.0.1:9996
+pathDefaults:
+  recordPath: /recordings/%path/%Y-%m-%d_%H-%M-%S-%f
+  recordFormat: fmp4
+  recordPartDuration: 1s
+  recordSegmentDuration: 10m
+  recordDeleteAfter: 0s
 paths: {}

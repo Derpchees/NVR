@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d1013">
+    <title>Iniciar sesión · NVR</title>
+    <link rel="stylesheet" href="/static/nvr.css">
+  </head>
+  <body class="login-page">
+    <main class="login-card">
+      <div class="brand brand-large">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7.5h12.5L21 4.5v15l-5.5-3H3z"/><circle cx="8" cy="12" r="2.2"/></svg></span>
+        <span class="brand-text"><strong>NVR</strong><small>Centro de vigilancia</small></span>
+      </div>
+      <h1>Iniciar sesión</h1>
+      <p class="muted">Accede al panel de cámaras de tu red local.</p>
+      <form id="login-form" class="stack" novalidate>
+        <label class="field">Usuario<input name="username" autocomplete="username" required autofocus></label>
+        <label class="field">Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+        <p class="form-message" id="login-message" role="alert"></p>
+        <button class="button button-primary button-block" type="submit">Entrar</button>
+      </form>
+    </main>
+    <script>
+      const form = document.querySelector('#login-form');
+      const message = document.querySelector('#login-message');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        const button = form.querySelector('button');
+        button.disabled = true;
+        message.textContent = '';
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: form.username.value.trim(), password: form.password.value }),
+          });
+          if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(typeof body.detail === 'string' ? body.detail : 'No se pudo iniciar sesión');
+          }
+          window.location.replace('/');
+        } catch (error) {
+          message.textContent = error.message;
+          form.password.value = '';
+          form.password.focus();
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
