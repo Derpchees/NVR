@@ -1,0 +1,30 @@
+services:
+  cctv:
+    build: .
+    container_name: nvr-cctv
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      APP_USER: ${APP_USER:-admin}
+      APP_PASSWORD: ${APP_PASSWORD:?Create a .env file and set APP_PASSWORD}
+      DATA_DIR: /data
+      MEDIAMTX_API: http://127.0.0.1:9997
+      MEDIAMTX_HLS: http://127.0.0.1:8888
+      MEDIAMTX_HLS_SECRET: ${HLS_CDN_SECRET:?Set HLS_CDN_SECRET in .env}
+    volumes:
+      - cctv-data:/data
+    depends_on:
+      - mediamtx
+
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.1
+    container_name: nvr-mediamtx
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      MTX_HLSCDNSECRET: ${HLS_CDN_SECRET:?Set HLS_CDN_SECRET in .env}
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+volumes:
+  cctv-data:

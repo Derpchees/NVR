@@ -1,0 +1,11 @@
+logLevel: warn
+api: yes
+apiAddress: 127.0.0.1:9997
+hls: yes
+hlsAddress: 127.0.0.1:8888
+hlsCDNSecret: ""
+hlsVariant: lowLatency
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+paths: {}

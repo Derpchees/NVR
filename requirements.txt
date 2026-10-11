@@ -1,0 +1,5 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+onvif-zeep==0.2.12
+httpx==0.28.1
+cryptography==44.0.3
